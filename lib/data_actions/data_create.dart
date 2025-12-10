@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_firestore_ex01/models/item.dart';
 
 void showAddItemSheet(BuildContext context) {
+  // 이름/수량 입력용 컨트롤러 준비
   TextEditingController nameController = TextEditingController();
   TextEditingController quantityController = TextEditingController();
 
+  // 모달 바텀시트로 입력 폼 표시
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -23,9 +25,8 @@ void showAddItemSheet(BuildContext context) {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Card(
-              // 그림자
+              // 타이틀 카드 + 그림자
               elevation: 10,
-              // 모양
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(5),
               ),
@@ -40,10 +41,12 @@ void showAddItemSheet(BuildContext context) {
             ),
             SizedBox(height: 20),
             TextField(
+              // 아이템 이름 입력
               controller: nameController,
               decoration: InputDecoration(labelText: 'Item Name'),
             ),
             TextField(
+              // 수량 숫자 입력
               controller: quantityController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(labelText: 'Quantity'),
@@ -62,6 +65,7 @@ void showAddItemSheet(BuildContext context) {
                   elevation: 10,
                 ),
                 onPressed: () {
+                  // 저장 버튼 클릭 → 입력값 검증 후 추가
                   _addItem(
                     nameController.text,
                     int.tryParse(quantityController.text) ?? 0,
@@ -80,6 +84,7 @@ void showAddItemSheet(BuildContext context) {
 }
 
 void _addItem(String name, int quantity, BuildContext context) {
+  // 이름 미입력 시 알림
   if (name.isEmpty) {
     showDialog(
       context: context,
@@ -101,6 +106,7 @@ void _addItem(String name, int quantity, BuildContext context) {
     return;
   }
 
+  // 수량 0 입력 시 알림
   if (quantity == 0) {
         showDialog(
       context: context,
@@ -123,9 +129,11 @@ void _addItem(String name, int quantity, BuildContext context) {
   }
 
   try {
+    // 신규 아이템 생성 후 Firestore에 추가
     final newItem = Item(id: '', name: name, quantity: quantity, timestamp: DateTime.now());
     FirebaseFirestore.instance.collection('items').add(newItem.toFirestore());
 
+    // 성공 안내 다이얼로그
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -145,6 +153,7 @@ void _addItem(String name, int quantity, BuildContext context) {
     );
 
   } catch (e) {
+        // 실패 시 알림 다이얼로그
         showDialog(
       context: context,
       builder: (BuildContext context) {
