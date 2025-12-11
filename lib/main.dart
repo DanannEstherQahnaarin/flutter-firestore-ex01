@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_firestore_ex01/data_actions/data_delete.dart';
+import 'package:flutter_firestore_ex01/data_actions/data_update.dart';
 import 'package:flutter_firestore_ex01/firebase_options.dart';
 import 'package:flutter_firestore_ex01/models/item.dart';
 import 'package:flutter_firestore_ex01/data_actions/data_create.dart';
@@ -23,7 +25,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      ),
       home: HomeScreen(),
     );
   }
@@ -71,6 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
             itemCount: data.docs.length,
             itemBuilder: (context, index) {
               final doc = data.docs[index];
+
               // Firestore 문서 → Item 모델 변환
               final item = Item.fromFirestore(
                 doc.data() as Map<String, dynamic>,
@@ -80,21 +85,61 @@ class _HomeScreenState extends State<HomeScreen> {
               return ListTile(
                 title: Text(item.name),
                 subtitle: Text('수량 : ${item.quantity}'),
-                trailing: Text(
-                  'ID : ${item.id.substring(0, 5)}...',
-                  style: const TextStyle(fontSize: 10),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'ID : ${item.id.length > 5 ? item.id.substring(0, 5) : item.id}...',
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        showUpdateItemSheet(context, item);
+                      },
+                      icon: Icon(Icons.edit),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              title: Text('Delete'),
+                              content: Text('${item.name}을 삭제하시겠습니까?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    Navigator.of(context).pop();
+                                    await deleteItem(item.id, context);
+                                  },
+                                  child: Text('Delete'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                      icon: Icon(Icons.delete),
+                    ),
+                  ],
                 ),
               );
             },
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(onPressed: () {
-        showAddItemSheet(context);
-      },
-      child: const Icon(Icons.add),),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showAddItemSheet(context);
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
-
-

@@ -20,8 +20,8 @@ class Item {
 
     return Item(
       id: id,
-      name: firestore['name'] as String,
-      quantity: firestore['quantity'] as int,
+      name: (firestore['name'] ?? '') as String,
+      quantity: (firestore['quantity'] ?? 0) as int,
       timestamp: timestamp,
     );
   }

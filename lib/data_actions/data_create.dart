@@ -1,21 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_firestore_ex01/models/item.dart';
 
-void showAddItemSheet(BuildContext context) {
+void showAddItemSheet(BuildContext parentContext) {
   // 이름/수량 입력용 컨트롤러 준비
   TextEditingController nameController = TextEditingController();
   TextEditingController quantityController = TextEditingController();
 
   // 모달 바텀시트로 입력 폼 표시
   showModalBottomSheet(
-    context: context,
+    context: parentContext,
     isScrollControlled: true,
-    builder: (context) {
+    builder: (bottomSheetContext) {
       return Padding(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          bottom: MediaQuery.of(bottomSheetContext).viewInsets.bottom,
           top: 20,
           left: 20,
           right: 20,
@@ -64,12 +63,13 @@ void showAddItemSheet(BuildContext context) {
                   ),
                   elevation: 10,
                 ),
-                onPressed: () {
+                onPressed: () async {
                   // 저장 버튼 클릭 → 입력값 검증 후 추가
-                  _addItem(
+                  await _addItem(
                     nameController.text,
                     int.tryParse(quantityController.text) ?? 0,
-                    context,
+                    bottomSheetContext,
+                    parentContext,
                   );
                 },
                 child: Icon(Icons.save, size: 30, semanticLabel: 'Item Add...'),
@@ -83,11 +83,17 @@ void showAddItemSheet(BuildContext context) {
   );
 }
 
-void _addItem(String name, int quantity, BuildContext context) {
+Future<void> _addItem(
+  String name,
+  int quantity,
+  BuildContext bottomSheetContext,
+  BuildContext parentContext,
+) async {
   // 이름 미입력 시 알림
   if (name.isEmpty) {
+    if (!bottomSheetContext.mounted) return;
     showDialog(
-      context: context,
+      context: bottomSheetContext,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('알림'),
@@ -108,8 +114,9 @@ void _addItem(String name, int quantity, BuildContext context) {
 
   // 수량 0 입력 시 알림
   if (quantity == 0) {
-        showDialog(
-      context: context,
+    if (!bottomSheetContext.mounted) return;
+    showDialog(
+      context: bottomSheetContext,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('알림'),
@@ -130,12 +137,26 @@ void _addItem(String name, int quantity, BuildContext context) {
 
   try {
     // 신규 아이템 생성 후 Firestore에 추가
-    final newItem = Item(id: '', name: name, quantity: quantity, timestamp: DateTime.now());
-    FirebaseFirestore.instance.collection('items').add(newItem.toFirestore());
+    final newItem = Item(
+      id: '',
+      name: name,
+      quantity: quantity,
+      timestamp: DateTime.now(),
+    );
+    await FirebaseFirestore.instance
+        .collection('items')
+        .add(newItem.toFirestore());
 
     // 성공 안내 다이얼로그
+    if (!bottomSheetContext.mounted) return;
+    // BottomSheet 닫기
+    Navigator.of(bottomSheetContext).pop();
+    // 다음 프레임까지 대기 (렌더링 트리 안정화)
+    await Future.delayed(Duration.zero);
+    // 성공 다이얼로그 표시
+    if (!parentContext.mounted) return;
     showDialog(
-      context: context,
+      context: parentContext,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('성공'),
@@ -151,11 +172,11 @@ void _addItem(String name, int quantity, BuildContext context) {
         );
       },
     );
-
   } catch (e) {
-        // 실패 시 알림 다이얼로그
-        showDialog(
-      context: context,
+    // 실패 시 알림 다이얼로그
+    if (!bottomSheetContext.mounted) return;
+    showDialog(
+      context: bottomSheetContext,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('실패'),
